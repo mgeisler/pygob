@@ -48,9 +48,8 @@ class Loader:
     def decode_int(self, buf):
         uint, buf = self.decode_uint(buf)
         if uint & 1:
-            return ~(uint >> 1), buf
-        else:
-            return (uint >> 1), buf
+            uint = ~uint
+        return uint >> 1, buf
 
     def decode_float(self, buf):
         n, buf = self.decode_uint(buf)
