@@ -4,6 +4,17 @@ from .types import TypeID
 
 
 class Loader:
+    def __init__(self):
+        self._decoders = {
+            TypeID.INT: self.decode_int,
+            TypeID.UINT: self.decode_uint,
+            TypeID.BOOL: self.decode_bool,
+            TypeID.FLOAT: self.decode_float,
+            TypeID.BYTE_SLICE: self.decode_byte_slice,
+            TypeID.STRING: self.decode_string,
+            TypeID.COMPLEX: self.decode_complex,
+        }
+
     def load(self, buf):
         length, buf = self.decode_uint(buf)
         assert len(buf) == length
@@ -64,18 +75,7 @@ class Loader:
         return complex(re, im), buf
 
     def decode_value(self, typeid, buf):
-        if typeid == TypeID.INT:
-            return self.decode_int(buf)
-        if typeid == TypeID.UINT:
-            return self.decode_uint(buf)
-        if typeid == TypeID.BOOL:
-            return self.decode_bool(buf)
-        if typeid == TypeID.FLOAT:
-            return self.decode_float(buf)
-        if typeid == TypeID.BYTE_SLICE:
-            return self.decode_byte_slice(buf)
-        if typeid == TypeID.STRING:
-            return self.decode_string(buf)
-        if typeid == TypeID.COMPLEX:
-            return self.decode_complex(buf)
-        raise NotImplementedError("cannot decode %s" % typeid)
+        decoder = self._decoders.get(typeid)
+        if decoder is None:
+            raise NotImplementedError("cannot decode %s" % typeid)
+        return decoder(buf)
