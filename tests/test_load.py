@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 import pygob
@@ -38,3 +40,21 @@ def test_int(data, expected):
 ])
 def test_bool(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([3, 8, 0, 0], 0),
+    ([5, 8, 0, 254, 240, 63], 1),
+    ([4, 8, 0, 255, 192], -2),
+    ([11, 8, 0, 248, 122, 0, 139, 252, 250, 33, 9, 64], 3.141592),
+    ([5, 8, 0, 254, 240, 255], -math.inf),
+    ([5, 8, 0, 254, 240, 127], +math.inf),
+])
+def test_float(data, expected):
+    assert pygob.load(bytes(data)) == expected
+
+
+def test_float_nan():
+    data = [11, 8, 0, 248, 1, 0, 0, 0, 0, 0, 248, 127]
+    result = pygob.load(bytes(data))
+    assert math.isnan(result)

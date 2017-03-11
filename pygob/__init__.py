@@ -49,6 +49,13 @@ def decode_int(buf):
         return (uint >> 1), buf
 
 
+def decode_float(buf):
+    n, buf = decode_uint(buf)
+    rev = bytes(reversed(struct.pack('L', n)))
+    (f, ) = struct.unpack('d', rev)
+    return f, buf
+
+
 def decode_value(typeid, buf):
     if typeid == TypeID.INT:
         return decode_int(buf)
@@ -56,6 +63,8 @@ def decode_value(typeid, buf):
         return decode_uint(buf)
     if typeid == TypeID.BOOL:
         return decode_bool(buf)
+    if typeid == TypeID.FLOAT:
+        return decode_float(buf)
     raise NotImplementedError("cannot decode %s" % typeid)
 
 
