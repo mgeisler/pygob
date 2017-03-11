@@ -56,6 +56,19 @@ def decode_float(buf):
     return f, buf
 
 
+def decode_byte_slice(buf):
+    count, buf = decode_uint(buf)
+    return bytearray(buf[:count]), buf[count:]
+
+
+def decode_string(buf):
+    count, buf = decode_uint(buf)
+    # TODO: Go strings do not guarantee any particular encoding. Add
+    # support for trying to decode the bytes using, say, UTF-8, so we
+    # can return a real Python string.
+    return buf[:count], buf[count:]
+
+
 def decode_value(typeid, buf):
     if typeid == TypeID.INT:
         return decode_int(buf)
@@ -65,6 +78,10 @@ def decode_value(typeid, buf):
         return decode_bool(buf)
     if typeid == TypeID.FLOAT:
         return decode_float(buf)
+    if typeid == TypeID.BYTE_SLICE:
+        return decode_byte_slice(buf)
+    if typeid == TypeID.STRING:
+        return decode_string(buf)
     raise NotImplementedError("cannot decode %s" % typeid)
 
 

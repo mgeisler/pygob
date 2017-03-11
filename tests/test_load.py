@@ -58,3 +58,27 @@ def test_float_nan():
     data = [11, 8, 0, 248, 1, 0, 0, 0, 0, 0, 248, 127]
     result = pygob.load(bytes(data))
     assert math.isnan(result)
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([3, 10, 0, 0], b''),
+    ([4, 10, 0, 1, 97], b'a'),
+    ([5, 10, 0, 2, 97, 98], b'ab'),
+    ([6, 10, 0, 3, 97, 98, 99], b'abc'),
+])
+def test_byte_slice(data, expected):
+    result = pygob.load(bytes(data))
+    assert type(result) == bytearray
+    assert result == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([3, 12, 0, 0], b''),
+    ([4, 12, 0, 1, 97], b'a'),
+    ([5, 12, 0, 2, 97, 98], b'ab'),
+    ([6, 12, 0, 3, 97, 98, 99], b'abc'),
+])
+def test_string(data, expected):
+    result = pygob.load(bytes(data))
+    assert type(result) == bytes
+    assert result == expected
