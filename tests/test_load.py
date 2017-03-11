@@ -30,3 +30,11 @@ def test_uint(data, expected):
 ])
 def test_int(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([3, 2, 0, 1], True),
+    ([3, 2, 0, 0], False),
+])
+def test_bool(data, expected):
+    assert pygob.load(bytes(data)) == expected

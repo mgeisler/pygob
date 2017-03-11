@@ -22,6 +22,11 @@ class TypeID(enum.Enum):
     MAP_TYPE = 23
 
 
+def decode_bool(buf):
+    n, buf = decode_uint(buf)
+    return n == 1, buf
+
+
 def decode_uint(buf):
     (length, ) = struct.unpack('b', buf[:1])
     if length >= 0:  # small uint in a single byte
@@ -49,6 +54,8 @@ def decode_value(typeid, buf):
         return decode_int(buf)
     if typeid == TypeID.UINT:
         return decode_uint(buf)
+    if typeid == TypeID.BOOL:
+        return decode_bool(buf)
     raise NotImplementedError("cannot decode %s" % typeid)
 
 
