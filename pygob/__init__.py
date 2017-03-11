@@ -69,6 +69,12 @@ def decode_string(buf):
     return buf[:count], buf[count:]
 
 
+def decode_complex(buf):
+    re, buf = decode_float(buf)
+    im, buf = decode_float(buf)
+    return complex(re, im), buf
+
+
 def decode_value(typeid, buf):
     if typeid == TypeID.INT:
         return decode_int(buf)
@@ -82,6 +88,8 @@ def decode_value(typeid, buf):
         return decode_byte_slice(buf)
     if typeid == TypeID.STRING:
         return decode_string(buf)
+    if typeid == TypeID.COMPLEX:
+        return decode_complex(buf)
     raise NotImplementedError("cannot decode %s" % typeid)
 
 

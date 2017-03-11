@@ -82,3 +82,16 @@ def test_string(data, expected):
     result = pygob.load(bytes(data))
     assert type(result) == bytes
     assert result == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([4, 14, 0, 0, 0], 0 + 0j),
+    ([6, 14, 0, 0, 254, 240, 63], 0 + 1j),
+    ([8, 14, 0, 254, 8, 64, 254, 16, 64], 3 + 4j),
+    ([
+        20, 14, 0, 248, 144, 247, 170, 149, 9, 191, 5, 192, 248, 110, 134, 27,
+        240, 249, 33, 9, 64
+    ], -2.71828 + 3.14159j),
+])
+def test_complex(data, expected):
+    assert pygob.load(bytes(data)) == expected
