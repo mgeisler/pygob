@@ -1,4 +1,5 @@
 import struct
+import collections
 
 from .types import TypeID
 
@@ -132,3 +133,28 @@ class GoComplex(GoType):
         re, buf = GoFloat.decode(buf)
         im, buf = GoFloat.decode(buf)
         return complex(re, im), buf
+
+
+class GoStruct(GoType):
+    def __init__(self, name, loader, fields):
+        self._name = name
+        self._loader = loader
+        self._fields = fields
+
+        self._class = collections.namedtuple(name, [n for (n, t) in fields])
+        self.zero = self._class._make(
+            [loader._types[t].zero for (n, t) in fields])
+
+    def decode(self, buf):
+        """Decode data from buf and return a namedtuple."""
+        values = {}
+        field_id = -1
+        while True:
+            delta, buf = GoUint.decode(buf)
+            if delta == 0:
+                break
+            field_id += delta
+            name, field = self._fields[field_id]
+            value, buf = self._loader.decode_value(field, buf)
+            values[name] = value
+        return self.zero._replace(**values), buf
