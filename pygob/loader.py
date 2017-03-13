@@ -35,6 +35,14 @@ class Loader:
         return go_type.decode(buf)
 
 
+class classproperty(object):
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, owner_self, owner_cls):
+        return self.fget(owner_cls)
+
+
 class GoType:
     """Represents a Go type.
 
@@ -45,6 +53,8 @@ class GoType:
 
 
 class GoBool(GoType):
+    zero = False
+
     @staticmethod
     def decode(buf):
         n, buf = GoUint.decode(buf)
@@ -52,6 +62,8 @@ class GoBool(GoType):
 
 
 class GoUint(GoType):
+    zero = 0
+
     @staticmethod
     def decode(buf):
         (length, ) = struct.unpack('b', buf[:1])
@@ -68,6 +80,8 @@ class GoUint(GoType):
 
 
 class GoInt(GoType):
+    zero = 0
+
     @staticmethod
     def decode(buf):
         uint, buf = GoUint.decode(buf)
@@ -77,6 +91,8 @@ class GoInt(GoType):
 
 
 class GoFloat(GoType):
+    zero = 0.0
+
     @staticmethod
     def decode(buf):
         n, buf = GoUint.decode(buf)
@@ -86,6 +102,10 @@ class GoFloat(GoType):
 
 
 class GoByteSlice(GoType):
+    @classproperty
+    def zero(cls):
+        return bytearray()
+
     @staticmethod
     def decode(buf):
         count, buf = GoUint.decode(buf)
@@ -93,6 +113,8 @@ class GoByteSlice(GoType):
 
 
 class GoString(GoType):
+    zero = b''
+
     @staticmethod
     def decode(buf):
         count, buf = GoUint.decode(buf)
@@ -103,6 +125,8 @@ class GoString(GoType):
 
 
 class GoComplex(GoType):
+    zero = 0 + 0j
+
     @staticmethod
     def decode(buf):
         re, buf = GoFloat.decode(buf)
