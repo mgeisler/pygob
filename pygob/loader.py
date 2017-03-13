@@ -5,14 +5,14 @@ from .types import TypeID
 
 class Loader:
     def __init__(self):
-        self._decoders = {
-            TypeID.INT: GoInt.decode,
-            TypeID.UINT: GoUint.decode,
-            TypeID.BOOL: GoBool.decode,
-            TypeID.FLOAT: GoFloat.decode,
-            TypeID.BYTE_SLICE: GoByteSlice.decode,
-            TypeID.STRING: GoString.decode,
-            TypeID.COMPLEX: GoComplex.decode,
+        self._types = {
+            TypeID.INT: GoInt,
+            TypeID.UINT: GoUint,
+            TypeID.BOOL: GoBool,
+            TypeID.FLOAT: GoFloat,
+            TypeID.BYTE_SLICE: GoByteSlice,
+            TypeID.STRING: GoString,
+            TypeID.COMPLEX: GoComplex,
         }
 
     def load(self, buf):
@@ -29,10 +29,10 @@ class Loader:
         return value
 
     def decode_value(self, typeid, buf):
-        decoder = self._decoders.get(typeid)
-        if decoder is None:
+        go_type = self._types.get(typeid)
+        if go_type is None:
             raise NotImplementedError("cannot decode %s" % typeid)
-        return decoder(buf)
+        return go_type.decode(buf)
 
 
 class GoType:
