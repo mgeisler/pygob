@@ -42,7 +42,7 @@ class Loader:
         ])
 
         # We can now register basic and compound types.
-        self._types = {
+        self.types = {
             TypeID.INT: GoInt,
             TypeID.UINT: GoUint,
             TypeID.BOOL: GoBool,
@@ -69,7 +69,7 @@ class Loader:
 
             # Decode wire type and register type for later.
             custom_type, buf = self.decode_value(TypeID.WIRE_TYPE, buf)
-            self._types[-typeid] = custom_type
+            self.types[-typeid] = custom_type
 
         try:
             typeid = TypeID(typeid)
@@ -82,7 +82,7 @@ class Loader:
         return value
 
     def decode_value(self, typeid, buf):
-        go_type = self._types.get(typeid)
+        go_type = self.types.get(typeid)
         if go_type is None:
             raise NotImplementedError("cannot decode %s" % typeid)
         return go_type.decode(buf)
@@ -215,7 +215,7 @@ class GoWireType(GoStruct):
     def decode(self, buf):
         """Decode data from buf and return a GoType."""
         wire_type, buf = super().decode(buf)
-        if wire_type.ArrayT is not None:
+        if wire_type.ArrayT != self._loader.types[TypeID.ARRAY_TYPE].zero:
             return GoArray(self._loader, wire_type.ArrayT), buf
         else:
             raise NotImplementedError("cannot handle %s" % wire_type)
