@@ -153,3 +153,18 @@ def test_extra_array_elements():
 ])
 def test_float_slice(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([14, 255, 147, 4, 1, 2, 255, 148, 0, 1, 4, 1, 2, 0, 0, 4, 255, 148, 0, 0],
+     {}),
+    ([
+        14, 255, 147, 4, 1, 2, 255, 148, 0, 1, 4, 1, 2, 0, 0, 8, 255, 148, 0,
+        2, 14, 1, 34, 0
+    ], {
+        7: True,
+        17: False
+    }),
+])
+def test_int_bool_map(data, expected):
+    assert pygob.load(bytes(data)) == expected

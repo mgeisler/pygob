@@ -219,6 +219,8 @@ class GoWireType(GoStruct):
             return GoArray(self._loader, wire_type.ArrayT), buf
         if wire_type.SliceT != self._loader.types[TypeID.SLICE_TYPE].zero:
             return GoSlice(self._loader, wire_type.SliceT), buf
+        if wire_type.MapT != self._loader.types[TypeID.MAP_TYPE].zero:
+            return GoMap(self._loader, wire_type.MapT), buf
         else:
             raise NotImplementedError("cannot handle %s" % wire_type)
 
@@ -272,4 +274,36 @@ class GoSlice(GoType):
         for i in range(count):
             value, buf = self._loader.decode_value(typeid, buf)
             result.append(value)
+        return result, buf
+
+
+class GoMap(GoType):
+    @property
+    def zero(cls):
+        return {}
+
+    def __init__(self, loader, map_type):
+        self._loader = loader
+        self._map_type = map_type
+
+    def decode(self, buf):
+        """Decode data from buf and return a dict."""
+        count, buf = GoUint.decode(buf)
+        key_typeid = self._map_type.Key
+        try:
+            key_typeid = TypeID(key_typeid)
+        except ValueError:
+            pass
+
+        elem_typeid = self._map_type.Elem
+        try:
+            elem_typeid = TypeID(elem_typeid)
+        except ValueError:
+            pass
+
+        result = {}
+        for i in range(count):
+            key, buf = self._loader.decode_value(key_typeid, buf)
+            value, buf = self._loader.decode_value(elem_typeid, buf)
+            result[key] = value
         return result, buf
