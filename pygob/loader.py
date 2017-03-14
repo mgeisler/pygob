@@ -6,7 +6,42 @@ from .types import TypeID
 
 class Loader:
     def __init__(self):
-        # Basic types that can be decoded in terms of each other.
+        # Compound types that depend on the basic types above.
+        common_type = GoStruct('CommonType', self, [
+            ('Name', GoString),
+            ('Id', GoInt),
+        ])
+        array_type = GoStruct('ArrayType', self, [
+            ('CommonType', common_type),
+            ('Elem', GoInt),
+            ('Len', GoInt),
+        ])
+        slice_type = GoStruct('SliceType', self, [
+            ('CommonType', common_type),
+            ('Elem', GoInt),
+        ])
+        struct_type = GoStruct('StructType', self, [
+            ('CommonType', common_type),
+            ('Field', GoInt),
+        ])
+        field_type = GoStruct('FieldType', self, [
+            ('Name', GoString),
+            ('Id', GoInt),
+        ])
+        # TODO: 22 is slice of fieldType.
+        map_type = GoStruct('MapType', self, [
+            ('CommonType', common_type),
+            ('Key', GoInt),
+            ('Elem', GoInt),
+        ])
+        wire_type = GoWireType('WireType', self, [
+            ('ArrayT', array_type),
+            ('SliceT', slice_type),
+            ('StructT', struct_type),
+            ('MapT', map_type),
+        ])
+
+        # We can now register basic and compound types.
         self._types = {
             TypeID.INT: GoInt,
             TypeID.UINT: GoUint,
@@ -15,45 +50,15 @@ class Loader:
             TypeID.BYTE_SLICE: GoByteSlice,
             TypeID.STRING: GoString,
             TypeID.COMPLEX: GoComplex,
+            TypeID.WIRE_TYPE: wire_type,
+            TypeID.ARRAY_TYPE: array_type,
+            TypeID.COMMON_TYPE: common_type,
+            TypeID.SLICE_TYPE: slice_type,
+            TypeID.STRUCT_TYPE: struct_type,
+            TypeID.FIELD_TYPE: field_type,
+            # 22 is slice of fieldType.
+            TypeID.MAP_TYPE: map_type,
         }
-
-        # Compound types that depend on the basic types above. We must
-        # define these after the above definition since the
-        # constructors will lookup the zero values using the above
-        # dict.
-        self._types[TypeID.COMMON_TYPE] = GoStruct('CommonType', self, [
-            ('Name', TypeID.STRING),
-            ('Id', TypeID.INT),
-        ])
-        self._types[TypeID.ARRAY_TYPE] = GoStruct('ArrayType', self, [
-            ('CommonType', TypeID.COMMON_TYPE),
-            ('Elem', TypeID.INT),
-            ('Len', TypeID.INT),
-        ])
-        self._types[TypeID.SLICE_TYPE] = GoStruct('SliceType', self, [
-            ('CommonType', TypeID.COMMON_TYPE),
-            ('Elem', TypeID.INT),
-        ])
-        self._types[TypeID.STRUCT_TYPE] = GoStruct('StructType', self, [
-            ('CommonType', TypeID.COMMON_TYPE),
-            ('Field', TypeID.INT),
-        ])
-        self._types[TypeID.FIELD_TYPE] = GoStruct('FieldType', self, [
-            ('Name', TypeID.STRING),
-            ('Id', TypeID.INT),
-        ])
-        # TODO: 22 is slice of fieldType.
-        self._types[TypeID.MAP_TYPE] = GoStruct('MapType', self, [
-            ('CommonType', TypeID.COMMON_TYPE),
-            ('Key', TypeID.INT),
-            ('Elem', TypeID.INT),
-        ])
-        self._types[TypeID.WIRE_TYPE] = GoWireType('WireType', self, [
-            ('ArrayT', TypeID.ARRAY_TYPE),
-            ('SliceT', TypeID.SLICE_TYPE),
-            ('StructT', TypeID.STRUCT_TYPE),
-            ('MapT', TypeID.MAP_TYPE),
-        ])
 
     def load(self, buf):
         while True:
@@ -189,8 +194,7 @@ class GoStruct(GoType):
         self._fields = fields
 
         self._class = collections.namedtuple(name, [n for (n, t) in fields])
-        self.zero = self._class._make(
-            [loader._types[t].zero for (n, t) in fields])
+        self.zero = self._class._make([t.zero for (n, t) in fields])
 
     def decode(self, buf):
         """Decode data from buf and return a namedtuple."""
@@ -202,7 +206,7 @@ class GoStruct(GoType):
                 break
             field_id += delta
             name, field = self._fields[field_id]
-            value, buf = self._loader.decode_value(field, buf)
+            value, buf = field.decode(buf)
             values[name] = value
         return self.zero._replace(**values), buf
 
