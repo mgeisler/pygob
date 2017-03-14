@@ -110,3 +110,24 @@ def test_complex(data, expected):
 ])
 def test_int_array(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+def test_int_matrix():
+    data = [
+        15, 255, 141, 1, 1, 2, 255, 142, 0, 1, 255, 140, 1, 6, 0, 0, 14, 255,
+        139, 1, 1, 2, 255, 140, 0, 1, 4, 1, 6, 0, 0, 16, 255, 142, 0, 3, 3, 0,
+        2, 4, 3, 6, 8, 10, 3, 12, 14, 16
+    ]
+    expected = ((0, 1, 2), (3, 4, 5), (6, 7, 8))
+    assert pygob.load(bytes(data)) == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([12, 255, 131, 1, 1, 2, 255, 132, 0, 1, 2, 0, 0, 4, 255, 132, 0, 0], ()),
+    ([
+        14, 255, 133, 1, 1, 2, 255, 134, 0, 1, 2, 1, 4, 0, 0, 6, 255, 134, 0,
+        2, 1, 0
+    ], (True, False)),
+])
+def test_bool_array(data, expected):
+    assert pygob.load(bytes(data)) == expected
