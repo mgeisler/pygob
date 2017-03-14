@@ -233,6 +233,8 @@ class GoArray(GoType):
         them more like Python tuples than Python lists.
         """
         count, buf = GoUint.decode(buf)
+        assert count == self._array_type.Len, \
+            "expected %d elements, found %d" % (self._array_type.Len, count)
         typeid = self._array_type.Elem
         try:
             typeid = TypeID(typeid)

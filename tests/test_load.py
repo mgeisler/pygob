@@ -131,3 +131,13 @@ def test_int_matrix():
 ])
 def test_bool_array(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+def test_extra_array_elements():
+    data = [
+        14, 255, 135, 1, 1, 2, 255, 136, 0, 1, 4, 1, 2, 0, 0, 5, 255, 136, 0,
+        7, 34
+    ]
+    with pytest.raises(AssertionError) as excinfo:
+        pygob.load(bytes(data))
+    excinfo.match('expected 1 elements, found 7')
