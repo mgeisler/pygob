@@ -217,6 +217,8 @@ class GoWireType(GoStruct):
         wire_type, buf = super().decode(buf)
         if wire_type.ArrayT != self._loader.types[TypeID.ARRAY_TYPE].zero:
             return GoArray(self._loader, wire_type.ArrayT), buf
+        if wire_type.SliceT != self._loader.types[TypeID.SLICE_TYPE].zero:
+            return GoSlice(self._loader, wire_type.SliceT), buf
         else:
             raise NotImplementedError("cannot handle %s" % wire_type)
 
@@ -246,3 +248,28 @@ class GoArray(GoType):
             value, buf = self._loader.decode_value(typeid, buf)
             result.append(value)
         return tuple(result), buf
+
+
+class GoSlice(GoType):
+    def __init__(self, loader, slice_type):
+        self._loader = loader
+        self._slice_type = slice_type
+
+    def decode(self, buf):
+        """Decode data from buf and return a list.
+
+        Go slices can extended later (with a possible reallocation of
+        the underlying array) and are thus similar to Python lists.
+        """
+        count, buf = GoUint.decode(buf)
+        typeid = self._slice_type.Elem
+        try:
+            typeid = TypeID(typeid)
+        except ValueError:
+            pass
+
+        result = []
+        for i in range(count):
+            value, buf = self._loader.decode_value(typeid, buf)
+            result.append(value)
+        return result, buf

@@ -141,3 +141,15 @@ def test_extra_array_elements():
     with pytest.raises(AssertionError) as excinfo:
         pygob.load(bytes(data))
     excinfo.match('expected 1 elements, found 7')
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([12, 255, 143, 2, 1, 2, 255, 144, 0, 1, 8, 0, 0, 4, 255, 144, 0, 0], []),
+    ([
+        12, 255, 145, 2, 1, 2, 255, 146, 0, 1, 8, 0, 0, 22, 255, 146, 0, 2,
+        248, 31, 133, 235, 81, 184, 30, 9, 64, 248, 125, 195, 148, 37, 173, 73,
+        178, 84
+    ], [3.14, 1e100]),
+])
+def test_float_slice(data, expected):
+    assert pygob.load(bytes(data)) == expected
