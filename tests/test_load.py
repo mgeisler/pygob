@@ -95,3 +95,18 @@ def test_string(data, expected):
 ])
 def test_complex(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+@pytest.mark.parametrize(('data', 'expected'), [
+    ([12, 255, 133, 1, 1, 2, 255, 134, 0, 1, 4, 0, 0, 4, 255, 134, 0, 0], ()),
+    ([
+        14, 255, 135, 1, 1, 2, 255, 136, 0, 1, 4, 1, 2, 0, 0, 5, 255, 136, 0,
+        1, 34
+    ], (17, )),
+    ([
+        14, 255, 137, 1, 1, 2, 255, 138, 0, 1, 4, 1, 6, 0, 0, 10, 255, 138, 0,
+        3, 34, 255, 234, 254, 1, 178
+    ], (17, 117, 217)),
+])
+def test_int_array(data, expected):
+    assert pygob.load(bytes(data)) == expected

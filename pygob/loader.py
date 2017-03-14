@@ -6,6 +6,7 @@ from .types import TypeID
 
 class Loader:
     def __init__(self):
+        # Basic types that can be decoded in terms of each other.
         self._types = {
             TypeID.INT: GoInt,
             TypeID.UINT: GoUint,
@@ -16,17 +17,63 @@ class Loader:
             TypeID.COMPLEX: GoComplex,
         }
 
-    def load(self, buf):
-        length, buf = GoUint.decode(buf)
-        assert len(buf) == length
+        # Compound types that depend on the basic types above. We must
+        # define these after the above definition since the
+        # constructors will lookup the zero values using the above
+        # dict.
+        self._types[TypeID.COMMON_TYPE] = GoStruct('CommonType', self, [
+            ('Name', TypeID.STRING),
+            ('Id', TypeID.INT),
+        ])
+        self._types[TypeID.ARRAY_TYPE] = GoStruct('ArrayType', self, [
+            ('CommonType', TypeID.COMMON_TYPE),
+            ('Elem', TypeID.INT),
+            ('Len', TypeID.INT),
+        ])
+        self._types[TypeID.SLICE_TYPE] = GoStruct('SliceType', self, [
+            ('CommonType', TypeID.COMMON_TYPE),
+            ('Elem', TypeID.INT),
+        ])
+        self._types[TypeID.STRUCT_TYPE] = GoStruct('StructType', self, [
+            ('CommonType', TypeID.COMMON_TYPE),
+            ('Field', TypeID.INT),
+        ])
+        self._types[TypeID.FIELD_TYPE] = GoStruct('FieldType', self, [
+            ('Name', TypeID.STRING),
+            ('Id', TypeID.INT),
+        ])
+        # TODO: 22 is slice of fieldType.
+        self._types[TypeID.MAP_TYPE] = GoStruct('MapType', self, [
+            ('CommonType', TypeID.COMMON_TYPE),
+            ('Key', TypeID.INT),
+            ('Elem', TypeID.INT),
+        ])
+        self._types[TypeID.WIRE_TYPE] = GoWireType('WireType', self, [
+            ('ArrayT', TypeID.ARRAY_TYPE),
+            ('SliceT', TypeID.SLICE_TYPE),
+            ('StructT', TypeID.STRUCT_TYPE),
+            ('MapT', TypeID.MAP_TYPE),
+        ])
 
-        typeid, buf = GoInt.decode(buf)
-        if typeid < 0:
-            raise NotImplementedError("cannot decode non-standard type ID %d" %
-                                      -typeid)
-        typeid = TypeID(typeid)
+    def load(self, buf):
+        while True:
+            length, buf = GoUint.decode(buf)
+            typeid, buf = GoInt.decode(buf)
+            if typeid > 0:
+                break  # Found a value.
+
+            # Decode wire type and register type for later.
+            custom_type, buf = self.decode_value(TypeID.WIRE_TYPE, buf)
+            self._types[-typeid] = custom_type
+
+        try:
+            typeid = TypeID(typeid)
+        except ValueError:
+            pass  # We only have enum values for the basic types.
+
         # TODO: why must we skip a zero byte here?
         value, buf = self.decode_value(typeid, buf[1:])
+        assert buf == b'', "trailing garbage: %s" % list(buf)
         return value
 
     def decode_value(self, typeid, buf):
@@ -158,3 +205,38 @@ class GoStruct(GoType):
             value, buf = self._loader.decode_value(field, buf)
             values[name] = value
         return self.zero._replace(**values), buf
+
+
+class GoWireType(GoStruct):
+    def decode(self, buf):
+        """Decode data from buf and return a GoType."""
+        wire_type, buf = super().decode(buf)
+        if wire_type.ArrayT is not None:
+            return GoArray(self._loader, wire_type.ArrayT), buf
+        else:
+            raise NotImplementedError("cannot handle %s" % wire_type)
+
+
+class GoArray(GoType):
+    def __init__(self, loader, array_type):
+        self._loader = loader
+        self._array_type = array_type
+
+    def decode(self, buf):
+        """Decode data from buf and return a tuple.
+
+        Go arrays have a fixed size and cannot be resized. This makes
+        them more like Python tuples than Python lists.
+        """
+        count, buf = GoUint.decode(buf)
+        typeid = self._array_type.Elem
+        try:
+            typeid = TypeID(typeid)
+        except ValueError:
+            pass
+
+        result = []
+        for i in range(count):
+            value, buf = self._loader.decode_value(typeid, buf)
+            result.append(value)
+        return tuple(result), buf
