@@ -17,5 +17,5 @@ class TypeID(enum.Enum):
     SLICE_TYPE = 19
     STRUCT_TYPE = 20
     FIELD_TYPE = 21
-    # 22 is slice of fieldType.
+    FIELD_TYPE_SLICE = 22
     MAP_TYPE = 23
