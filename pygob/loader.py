@@ -253,6 +253,10 @@ class GoArray(GoType):
 
 
 class GoSlice(GoType):
+    @property
+    def zero(cls):
+        return []
+
     def __init__(self, loader, slice_type):
         self._loader = loader
         self._slice_type = slice_type
