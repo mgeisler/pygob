@@ -283,6 +283,12 @@ class GoSlice(GoType):
         return []
 
     def __init__(self, loader, typeid):
+        """A Go slice of a certain type.
+
+        >>> int_slice = GoSlice(Loader(), INT)
+        >>> int_slice.zero
+        []
+        """
         self._loader = loader
         self._typeid = typeid
 
