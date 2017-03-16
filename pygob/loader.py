@@ -185,13 +185,15 @@ class GoComplex(GoType):
 
 
 class GoStruct(GoType):
+    @property
+    def zero(self):
+        return self._class._make([t.zero for (n, t) in self._fields])
+
     def __init__(self, name, loader, fields):
         self._name = name
         self._loader = loader
         self._fields = fields
-
         self._class = collections.namedtuple(name, [n for (n, t) in fields])
-        self.zero = self._class._make([t.zero for (n, t) in fields])
 
     def decode(self, buf):
         """Decode data from buf and return a namedtuple."""
