@@ -3,7 +3,7 @@ import collections
 
 from .types import (BOOL, INT, UINT, FLOAT, BYTE_SLICE, STRING, COMPLEX,
                     WIRE_TYPE, ARRAY_TYPE, COMMON_TYPE, SLICE_TYPE,
-                    STRUCT_TYPE, FIELD_TYPE, MAP_TYPE)
+                    STRUCT_TYPE, FIELD_TYPE, FIELD_TYPE_SLICE, MAP_TYPE)
 
 
 class Loader:
@@ -24,13 +24,13 @@ class Loader:
         ])
         struct_type = GoStruct('StructType', self, [
             ('CommonType', COMMON_TYPE),
-            ('Field', INT),
+            ('Field', FIELD_TYPE_SLICE),
         ])
         field_type = GoStruct('FieldType', self, [
             ('Name', STRING),
             ('Id', INT),
         ])
-        # TODO: 22 is slice of fieldType.
+        field_type_slice = GoSlice(self, FIELD_TYPE)
         map_type = GoStruct('MapType', self, [
             ('CommonType', COMMON_TYPE),
             ('Key', INT),
@@ -58,7 +58,7 @@ class Loader:
             SLICE_TYPE: slice_type,
             STRUCT_TYPE: struct_type,
             FIELD_TYPE: field_type,
-            # 22 is slice of fieldType.
+            FIELD_TYPE_SLICE: field_type_slice,
             MAP_TYPE: map_type,
         }
 
@@ -238,6 +238,15 @@ class GoWireType(GoStruct):
         if wire_type.SliceT != self._loader.types[SLICE_TYPE].zero:
             typeid = wire_type.SliceT.Elem
             return GoSlice(self._loader, typeid), buf
+
+        if wire_type.StructT != self._loader.types[STRUCT_TYPE].zero:
+            # Named tuples must be constructed using strings, not
+            # bytes, so we need to decode the names here. Go source
+            # files are defined to be UTF-8 encoded.
+            name = wire_type.StructT.CommonType.Name.decode('utf-8')
+            fields = [(f.Name.decode('utf-8'), f.Id)
+                      for f in wire_type.StructT.Field]
+            return GoStruct(name, self._loader, fields), buf
 
         if wire_type.MapT != self._loader.types[MAP_TYPE].zero:
             key_typeid = wire_type.MapT.Key

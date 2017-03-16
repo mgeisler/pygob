@@ -1,4 +1,5 @@
 import math
+import collections
 
 import pytest
 
@@ -168,3 +169,30 @@ def test_float_slice(data, expected):
 ])
 def test_int_bool_map(data, expected):
     assert pygob.load(bytes(data)) == expected
+
+
+def test_point_struct():
+    data = [
+        31, 255, 147, 3, 1, 1, 5, 80, 111, 105, 110, 116, 1, 255, 148, 0, 1, 2,
+        1, 1, 88, 1, 4, 0, 1, 1, 89, 1, 4, 0, 0, 0, 7, 255, 148, 1, 34, 1, 84,
+        0
+    ]
+    Point = collections.namedtuple('Point', ['X', 'Y'])
+    assert pygob.load(bytes(data)) == Point(17, 42)
+
+
+def test_person_struct():
+    data = [
+        50, 255, 149, 3, 1, 1, 6, 80, 101, 114, 115, 111, 110, 1, 255, 150, 0,
+        1, 3, 1, 4, 78, 97, 109, 101, 1, 12, 0, 1, 3, 65, 103, 101, 1, 4, 0, 1,
+        7, 65, 100, 100, 114, 101, 115, 115, 1, 255, 152, 0, 0, 0, 48, 255,
+        151, 3, 1, 1, 7, 65, 100, 100, 114, 101, 115, 115, 1, 255, 152, 0, 1,
+        2, 1, 6, 83, 116, 114, 101, 101, 116, 1, 12, 0, 1, 11, 72, 111, 117,
+        115, 101, 78, 117, 109, 98, 101, 114, 1, 4, 0, 0, 0, 25, 255, 150, 1,
+        5, 65, 108, 105, 99, 101, 1, 70, 1, 1, 7, 77, 97, 105, 110, 32, 83,
+        116, 1, 34, 0, 0
+    ]
+    Person = collections.namedtuple('Person', ['Name', 'Age', 'Address'])
+    Address = collections.namedtuple('Address', ['Street', 'HouseNumber'])
+    assert pygob.load(bytes(data)) == Person(b'Alice', 35,
+                                             Address(b'Main St', 17))
