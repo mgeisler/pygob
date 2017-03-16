@@ -213,11 +213,16 @@ class GoWireType(GoStruct):
         """Decode data from buf and return a GoType."""
         wire_type, buf = super().decode(buf)
         if wire_type.ArrayT != self._loader.types[ARRAY_TYPE].zero:
-            return GoArray(self._loader, wire_type.ArrayT), buf
+            typeid = wire_type.ArrayT.Elem
+            length = wire_type.ArrayT.Len
+            return GoArray(self._loader, typeid, length), buf
         if wire_type.SliceT != self._loader.types[SLICE_TYPE].zero:
-            return GoSlice(self._loader, wire_type.SliceT), buf
+            typeid = wire_type.SliceT.Elem
+            return GoSlice(self._loader, typeid), buf
         if wire_type.MapT != self._loader.types[MAP_TYPE].zero:
-            return GoMap(self._loader, wire_type.MapT), buf
+            key_typeid = wire_type.MapT.Key
+            elem_typeid = wire_type.MapT.Elem
+            return GoMap(self._loader, key_typeid, elem_typeid), buf
         else:
             raise NotImplementedError("cannot handle %s" % wire_type)
 
@@ -225,12 +230,12 @@ class GoWireType(GoStruct):
 class GoArray(GoType):
     @property
     def zero(self):
-        typeid = self._array_type.Elem
-        return (self._loader.types[typeid].zero, ) * self._array_type.Len
+        return (self._loader.types[self._typeid].zero, ) * self._length
 
-    def __init__(self, loader, array_type):
+    def __init__(self, loader, typeid, length):
         self._loader = loader
-        self._array_type = array_type
+        self._typeid = typeid
+        self._length = length
 
     def decode(self, buf):
         """Decode data from buf and return a tuple.
@@ -239,13 +244,12 @@ class GoArray(GoType):
         them more like Python tuples than Python lists.
         """
         count, buf = GoUint.decode(buf)
-        assert count == self._array_type.Len, \
-            "expected %d elements, found %d" % (self._array_type.Len, count)
-        typeid = self._array_type.Elem
+        assert count == self._length, \
+            "expected %d elements, found %d" % (self._length, count)
 
         result = []
         for i in range(count):
-            value, buf = self._loader.decode_value(typeid, buf)
+            value, buf = self._loader.decode_value(self._typeid, buf)
             result.append(value)
         return tuple(result), buf
 
@@ -255,9 +259,9 @@ class GoSlice(GoType):
     def zero(cls):
         return []
 
-    def __init__(self, loader, slice_type):
+    def __init__(self, loader, typeid):
         self._loader = loader
-        self._slice_type = slice_type
+        self._typeid = typeid
 
     def decode(self, buf):
         """Decode data from buf and return a list.
@@ -266,11 +270,10 @@ class GoSlice(GoType):
         the underlying array) and are thus similar to Python lists.
         """
         count, buf = GoUint.decode(buf)
-        typeid = self._slice_type.Elem
 
         result = []
         for i in range(count):
-            value, buf = self._loader.decode_value(typeid, buf)
+            value, buf = self._loader.decode_value(self._typeid, buf)
             result.append(value)
         return result, buf
 
@@ -280,19 +283,18 @@ class GoMap(GoType):
     def zero(cls):
         return {}
 
-    def __init__(self, loader, map_type):
+    def __init__(self, loader, key_typeid, elem_typeid):
         self._loader = loader
-        self._map_type = map_type
+        self._key_typeid = key_typeid
+        self._elem_typeid = elem_typeid
 
     def decode(self, buf):
         """Decode data from buf and return a dict."""
         count, buf = GoUint.decode(buf)
-        key_typeid = self._map_type.Key
-        elem_typeid = self._map_type.Elem
 
         result = {}
         for i in range(count):
-            key, buf = self._loader.decode_value(key_typeid, buf)
-            value, buf = self._loader.decode_value(elem_typeid, buf)
+            key, buf = self._loader.decode_value(self._key_typeid, buf)
+            value, buf = self._loader.decode_value(self._elem_typeid, buf)
             result[key] = value
         return result, buf
