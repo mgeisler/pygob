@@ -313,6 +313,12 @@ class GoMap(GoType):
         return {}
 
     def __init__(self, loader, key_typeid, elem_typeid):
+        """A Go map with a certain key and element type.
+
+        >>> int_string_map = GoMap(Loader(), INT, STRING)
+        >>> int_string_map.zero
+        {}
+        """
         self._loader = loader
         self._key_typeid = key_typeid
         self._elem_typeid = elem_typeid
