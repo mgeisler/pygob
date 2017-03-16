@@ -1,7 +1,9 @@
 import struct
 import collections
 
-from .types import TypeID
+from .types import (BOOL, INT, UINT, FLOAT, BYTE_SLICE, STRING, COMPLEX,
+                    WIRE_TYPE, ARRAY_TYPE, COMMON_TYPE, SLICE_TYPE,
+                    STRUCT_TYPE, FIELD_TYPE, MAP_TYPE)
 
 
 class Loader:
@@ -43,21 +45,21 @@ class Loader:
 
         # We can now register basic and compound types.
         self.types = {
-            TypeID.INT: GoInt,
-            TypeID.UINT: GoUint,
-            TypeID.BOOL: GoBool,
-            TypeID.FLOAT: GoFloat,
-            TypeID.BYTE_SLICE: GoByteSlice,
-            TypeID.STRING: GoString,
-            TypeID.COMPLEX: GoComplex,
-            TypeID.WIRE_TYPE: wire_type,
-            TypeID.ARRAY_TYPE: array_type,
-            TypeID.COMMON_TYPE: common_type,
-            TypeID.SLICE_TYPE: slice_type,
-            TypeID.STRUCT_TYPE: struct_type,
-            TypeID.FIELD_TYPE: field_type,
+            INT: GoInt,
+            UINT: GoUint,
+            BOOL: GoBool,
+            FLOAT: GoFloat,
+            BYTE_SLICE: GoByteSlice,
+            STRING: GoString,
+            COMPLEX: GoComplex,
+            WIRE_TYPE: wire_type,
+            ARRAY_TYPE: array_type,
+            COMMON_TYPE: common_type,
+            SLICE_TYPE: slice_type,
+            STRUCT_TYPE: struct_type,
+            FIELD_TYPE: field_type,
             # 22 is slice of fieldType.
-            TypeID.MAP_TYPE: map_type,
+            MAP_TYPE: map_type,
         }
 
     def load(self, buf):
@@ -68,13 +70,8 @@ class Loader:
                 break  # Found a value.
 
             # Decode wire type and register type for later.
-            custom_type, buf = self.decode_value(TypeID.WIRE_TYPE, buf)
+            custom_type, buf = self.decode_value(WIRE_TYPE, buf)
             self.types[-typeid] = custom_type
-
-        try:
-            typeid = TypeID(typeid)
-        except ValueError:
-            pass  # We only have enum values for the basic types.
 
         # TODO: why must we skip a zero byte here?
         value, buf = self.decode_value(typeid, buf[1:])
@@ -215,11 +212,11 @@ class GoWireType(GoStruct):
     def decode(self, buf):
         """Decode data from buf and return a GoType."""
         wire_type, buf = super().decode(buf)
-        if wire_type.ArrayT != self._loader.types[TypeID.ARRAY_TYPE].zero:
+        if wire_type.ArrayT != self._loader.types[ARRAY_TYPE].zero:
             return GoArray(self._loader, wire_type.ArrayT), buf
-        if wire_type.SliceT != self._loader.types[TypeID.SLICE_TYPE].zero:
+        if wire_type.SliceT != self._loader.types[SLICE_TYPE].zero:
             return GoSlice(self._loader, wire_type.SliceT), buf
-        if wire_type.MapT != self._loader.types[TypeID.MAP_TYPE].zero:
+        if wire_type.MapT != self._loader.types[MAP_TYPE].zero:
             return GoMap(self._loader, wire_type.MapT), buf
         else:
             raise NotImplementedError("cannot handle %s" % wire_type)
@@ -229,10 +226,6 @@ class GoArray(GoType):
     @property
     def zero(self):
         typeid = self._array_type.Elem
-        try:
-            typeid = TypeID(typeid)
-        except ValueError:
-            pass
         return (self._loader.types[typeid].zero, ) * self._array_type.Len
 
     def __init__(self, loader, array_type):
@@ -249,10 +242,6 @@ class GoArray(GoType):
         assert count == self._array_type.Len, \
             "expected %d elements, found %d" % (self._array_type.Len, count)
         typeid = self._array_type.Elem
-        try:
-            typeid = TypeID(typeid)
-        except ValueError:
-            pass
 
         result = []
         for i in range(count):
@@ -278,10 +267,6 @@ class GoSlice(GoType):
         """
         count, buf = GoUint.decode(buf)
         typeid = self._slice_type.Elem
-        try:
-            typeid = TypeID(typeid)
-        except ValueError:
-            pass
 
         result = []
         for i in range(count):
@@ -303,16 +288,7 @@ class GoMap(GoType):
         """Decode data from buf and return a dict."""
         count, buf = GoUint.decode(buf)
         key_typeid = self._map_type.Key
-        try:
-            key_typeid = TypeID(key_typeid)
-        except ValueError:
-            pass
-
         elem_typeid = self._map_type.Elem
-        try:
-            elem_typeid = TypeID(elem_typeid)
-        except ValueError:
-            pass
 
         result = {}
         for i in range(count):
