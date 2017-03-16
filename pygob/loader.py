@@ -212,19 +212,22 @@ class GoWireType(GoStruct):
     def decode(self, buf):
         """Decode data from buf and return a GoType."""
         wire_type, buf = super().decode(buf)
+
         if wire_type.ArrayT != self._loader.types[ARRAY_TYPE].zero:
             typeid = wire_type.ArrayT.Elem
             length = wire_type.ArrayT.Len
             return GoArray(self._loader, typeid, length), buf
+
         if wire_type.SliceT != self._loader.types[SLICE_TYPE].zero:
             typeid = wire_type.SliceT.Elem
             return GoSlice(self._loader, typeid), buf
+
         if wire_type.MapT != self._loader.types[MAP_TYPE].zero:
             key_typeid = wire_type.MapT.Key
             elem_typeid = wire_type.MapT.Elem
             return GoMap(self._loader, key_typeid, elem_typeid), buf
-        else:
-            raise NotImplementedError("cannot handle %s" % wire_type)
+
+        raise NotImplementedError("cannot handle %s" % wire_type)
 
 
 class GoArray(GoType):
