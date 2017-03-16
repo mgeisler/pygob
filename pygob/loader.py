@@ -226,6 +226,15 @@ class GoWireType(GoStruct):
 
 
 class GoArray(GoType):
+    @property
+    def zero(self):
+        typeid = self._array_type.Elem
+        try:
+            typeid = TypeID(typeid)
+        except ValueError:
+            pass
+        return (self._loader.types[typeid].zero, ) * self._array_type.Len
+
     def __init__(self, loader, array_type):
         self._loader = loader
         self._array_type = array_type
