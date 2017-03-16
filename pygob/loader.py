@@ -10,37 +10,37 @@ class Loader:
     def __init__(self):
         # Compound types that depend on the basic types above.
         common_type = GoStruct('CommonType', self, [
-            ('Name', GoString),
-            ('Id', GoInt),
+            ('Name', STRING),
+            ('Id', INT),
         ])
         array_type = GoStruct('ArrayType', self, [
-            ('CommonType', common_type),
-            ('Elem', GoInt),
-            ('Len', GoInt),
+            ('CommonType', COMMON_TYPE),
+            ('Elem', INT),
+            ('Len', INT),
         ])
         slice_type = GoStruct('SliceType', self, [
-            ('CommonType', common_type),
-            ('Elem', GoInt),
+            ('CommonType', COMMON_TYPE),
+            ('Elem', INT),
         ])
         struct_type = GoStruct('StructType', self, [
-            ('CommonType', common_type),
-            ('Field', GoInt),
+            ('CommonType', COMMON_TYPE),
+            ('Field', INT),
         ])
         field_type = GoStruct('FieldType', self, [
-            ('Name', GoString),
-            ('Id', GoInt),
+            ('Name', STRING),
+            ('Id', INT),
         ])
         # TODO: 22 is slice of fieldType.
         map_type = GoStruct('MapType', self, [
-            ('CommonType', common_type),
-            ('Key', GoInt),
-            ('Elem', GoInt),
+            ('CommonType', COMMON_TYPE),
+            ('Key', INT),
+            ('Elem', INT),
         ])
         wire_type = GoWireType('WireType', self, [
-            ('ArrayT', array_type),
-            ('SliceT', slice_type),
-            ('StructT', struct_type),
-            ('MapT', map_type),
+            ('ArrayT', ARRAY_TYPE),
+            ('SliceT', SLICE_TYPE),
+            ('StructT', STRUCT_TYPE),
+            ('MapT', MAP_TYPE),
         ])
 
         # We can now register basic and compound types.
@@ -187,7 +187,8 @@ class GoComplex(GoType):
 class GoStruct(GoType):
     @property
     def zero(self):
-        return self._class._make([t.zero for (n, t) in self._fields])
+        values = [self._loader.types[t].zero for (n, t) in self._fields]
+        return self._class._make(values)
 
     def __init__(self, name, loader, fields):
         """A Go struct with a certain set of fields.
@@ -196,8 +197,8 @@ class GoStruct(GoType):
         each field:
 
         >>> person = GoStruct('Person', Loader(), [
-        ...     ('Name', GoString),
-        ...     ('Age', GoInt),
+        ...     ('Name', STRING),
+        ...     ('Age', INT),
         ... ])
         >>> person.zero
         Person(Name=b'', Age=0)
@@ -216,8 +217,8 @@ class GoStruct(GoType):
             if delta == 0:
                 break
             field_id += delta
-            name, field = self._fields[field_id]
-            value, buf = field.decode(buf)
+            name, typeid = self._fields[field_id]
+            value, buf = self._loader.types[typeid].decode(buf)
             values[name] = value
         return self.zero._replace(**values), buf
 
