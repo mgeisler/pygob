@@ -190,6 +190,18 @@ class GoStruct(GoType):
         return self._class._make([t.zero for (n, t) in self._fields])
 
     def __init__(self, name, loader, fields):
+        """A Go struct with a certain set of fields.
+
+        The zero value of a GoStruct is based on the zero values of
+        each field:
+
+        >>> person = GoStruct('Person', Loader(), [
+        ...     ('Name', GoString),
+        ...     ('Age', GoInt),
+        ... ])
+        >>> person.zero
+        Person(Name=b'', Age=0)
+        """
         self._name = name
         self._loader = loader
         self._fields = fields
