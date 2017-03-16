@@ -238,6 +238,12 @@ class GoArray(GoType):
         return (self._loader.types[self._typeid].zero, ) * self._length
 
     def __init__(self, loader, typeid, length):
+        """A Go array of a certain type and length.
+
+        >>> int3 = GoArray(Loader(), INT, 3)
+        >>> int3.zero
+        (0, 0, 0)
+        """
         self._loader = loader
         self._typeid = typeid
         self._length = length
