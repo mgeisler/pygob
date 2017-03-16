@@ -74,7 +74,9 @@ class Loader:
             self.types[-typeid] = custom_type
 
         # TODO: why must we skip a zero byte here?
-        value, buf = self.decode_value(typeid, buf[1:])
+        if buf[0] == 0:
+            buf = buf[1:]
+        value, buf = self.decode_value(typeid, buf)
         assert buf == b'', "trailing garbage: %s" % list(buf)
         return value
 
