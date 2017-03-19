@@ -1,3 +1,5 @@
+import collections
+
 import pytest
 
 import pygob
@@ -16,12 +18,14 @@ def test_basic_types(data, expected):
     assert load_all(data) == expected
 
 
-def test_custom_types():
+def test_custom_type():
     data = [
-        2, 255, 129, 2, 1, 2, 255, 130, 0, 1, 2, 0, 0, 5, 255, 130, 0, 1, 1, 6,
-        255, 130, 0, 2, 1, 0
+        31, 255, 131, 3, 1, 1, 5, 80, 111, 105, 110, 116, 1, 255, 132, 0, 1, 2,
+        1, 1, 88, 1, 4, 0, 1, 1, 89, 1, 4, 0, 0, 0, 3, 255, 132, 0, 7, 255,
+        132, 1, 6, 1, 8, 0,
     ]
-    assert load_all(data) == [[True], [True, False]]
+    Point = collections.namedtuple('Point', ['X', 'Y'])
+    assert load_all(data) == [Point(0, 0), Point(3, 4)]
 
 
 def test_iterator():
