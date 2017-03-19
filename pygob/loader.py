@@ -232,6 +232,15 @@ class GoStruct(GoType):
             values[name] = value
         return self.zero._replace(**values), buf
 
+    def __repr__(self):
+        """GoStruct representation.
+
+        >>> GoStruct('Person', None, [('Name', STRING), ('Age', INT)])
+        <GoStruct Person Name=6, Age=2>
+        """
+        fields = ['%s=%s' % f for f in self._fields]
+        return '<GoStruct %s %s>' % (self._name, ', '.join(fields))
+
 
 class GoWireType(GoStruct):
     def decode(self, buf):
