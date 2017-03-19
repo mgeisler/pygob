@@ -71,24 +71,28 @@ class Loader:
             value, buf = self._load(buf)
             yield value
 
+    def _read_segment(self, buf):
+        length, buf = GoUint.decode(buf)
+        return buf[:length], buf[length:]
+
     def _load(self, buf):
         while True:
-            length, buf = GoUint.decode(buf)
-            typeid, buf = GoInt.decode(buf)
+            segment, buf = self._read_segment(buf)
+            typeid, segment = GoInt.decode(segment)
             if typeid > 0:
                 break  # Found a value.
 
             # Decode wire type and register type for later.
-            custom_type, buf = self.decode_value(WIRE_TYPE, buf)
+            custom_type, segment = self.decode_value(WIRE_TYPE, segment)
             self.types[-typeid] = custom_type
 
         # Top-level singletons are sent with an extra zero byte which
         # serves as a kind of field delta.
         go_type = self.types.get(typeid)
         if go_type is not None and not isinstance(go_type, GoStruct):
-            assert buf[0] == 0, 'illegal delta for singleton: %s' % buf[0]
-            buf = buf[1:]
-        value, buf = self.decode_value(typeid, buf)
+            assert segment[0] == 0, 'illegal delta for singleton: %s' % buf[0]
+            segment = segment[1:]
+        value, segment = self.decode_value(typeid, segment)
         return value, buf
 
     def decode_value(self, typeid, buf):
