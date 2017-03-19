@@ -63,6 +63,15 @@ class Loader:
         }
 
     def load(self, buf):
+        value, buf = self._load(buf)
+        return value
+
+    def load_all(self, buf):
+        while buf:
+            value, buf = self._load(buf)
+            yield value
+
+    def _load(self, buf):
         while True:
             length, buf = GoUint.decode(buf)
             typeid, buf = GoInt.decode(buf)
@@ -77,8 +86,7 @@ class Loader:
         if buf[0] == 0:
             buf = buf[1:]
         value, buf = self.decode_value(typeid, buf)
-        assert buf == b'', "trailing garbage: %s" % list(buf)
-        return value
+        return value, buf
 
     def decode_value(self, typeid, buf):
         go_type = self.types.get(typeid)
