@@ -70,7 +70,7 @@ class Loader:
         while buf:
             value, buf = self._load(buf)
             yield value
-        assert buf == b'', 'trailing garbage in buffer: %s' % list(buf)
+        assert buf == b'', 'trailing data in buffer: %s' % list(buf)
 
     def _read_segment(self, buf):
         length, buf = GoUint.decode(buf)
@@ -86,7 +86,8 @@ class Loader:
             # Decode wire type and register type for later.
             custom_type, segment = self.decode_value(WIRE_TYPE, segment)
             self.types[-typeid] = custom_type
-            assert segment == b'', 'trailing garbage in segment: %s' % list(segment)
+            assert segment == b'', ('trailing data in segment: %s' %
+                                    list(segment))
 
         # Top-level singletons are sent with an extra zero byte which
         # serves as a kind of field delta.
@@ -95,7 +96,7 @@ class Loader:
             assert segment[0] == 0, 'illegal delta for singleton: %s' % buf[0]
             segment = segment[1:]
         value, segment = self.decode_value(typeid, segment)
-        assert segment == b'', 'trailing garbage in segment: %s' % list(segment)
+        assert segment == b'', 'trailing data in segment: %s' % list(segment)
         return value, buf
 
     def decode_value(self, typeid, buf):
