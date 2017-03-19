@@ -82,8 +82,11 @@ class Loader:
             custom_type, buf = self.decode_value(WIRE_TYPE, buf)
             self.types[-typeid] = custom_type
 
-        # TODO: why must we skip a zero byte here?
-        if buf[0] == 0:
+        # Top-level singletons are sent with an extra zero byte which
+        # serves as a kind of field delta.
+        go_type = self.types.get(typeid)
+        if go_type is not None and not isinstance(go_type, GoStruct):
+            assert buf[0] == 0, 'illegal delta for singleton: %s' % buf[0]
             buf = buf[1:]
         value, buf = self.decode_value(typeid, buf)
         return value, buf
