@@ -8,34 +8,34 @@ from .types import (GoBool, GoUint, GoInt, GoFloat, GoByteSlice, GoString,
 class Loader:
     def __init__(self):
         # Compound types that depend on the basic types above.
-        common_type = GoStruct('CommonType', self, [
+        common_type = GoStruct(COMMON_TYPE, 'CommonType', self, [
             ('Name', STRING),
             ('Id', INT),
         ])
-        array_type = GoStruct('ArrayType', self, [
+        array_type = GoStruct(ARRAY_TYPE, 'ArrayType', self, [
             ('CommonType', COMMON_TYPE),
             ('Elem', INT),
             ('Len', INT),
         ])
-        slice_type = GoStruct('SliceType', self, [
+        slice_type = GoStruct(SLICE_TYPE, 'SliceType', self, [
             ('CommonType', COMMON_TYPE),
             ('Elem', INT),
         ])
-        struct_type = GoStruct('StructType', self, [
+        struct_type = GoStruct(STRUCT_TYPE, 'StructType', self, [
             ('CommonType', COMMON_TYPE),
             ('Field', FIELD_TYPE_SLICE),
         ])
-        field_type = GoStruct('FieldType', self, [
+        field_type = GoStruct(FIELD_TYPE, 'FieldType', self, [
             ('Name', STRING),
             ('Id', INT),
         ])
-        field_type_slice = GoSlice(self, FIELD_TYPE)
-        map_type = GoStruct('MapType', self, [
+        field_type_slice = GoSlice(FIELD_TYPE_SLICE, self, FIELD_TYPE)
+        map_type = GoStruct(MAP_TYPE, 'MapType', self, [
             ('CommonType', COMMON_TYPE),
             ('Key', INT),
             ('Elem', INT),
         ])
-        wire_type = GoWireType('WireType', self, [
+        wire_type = GoWireType(WIRE_TYPE, 'WireType', self, [
             ('ArrayT', ARRAY_TYPE),
             ('SliceT', SLICE_TYPE),
             ('StructT', STRUCT_TYPE),

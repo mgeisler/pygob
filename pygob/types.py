@@ -57,6 +57,7 @@ class GoBool(GoType):
     >>> GoBool.decode(bytes([1]))
     (True, b'')
     """
+    typeid = BOOL
     zero = False
 
     @staticmethod
@@ -76,6 +77,7 @@ class GoUint(GoType):
     >>> GoUint.decode(bytes([254, 1, 0]))
     (256, b'')
     """
+    typeid = UINT
     zero = 0
 
     @staticmethod
@@ -103,6 +105,7 @@ class GoInt(GoType):
     >>> GoInt.decode(bytes([6]))
     (3, b'')
     """
+    typeid = INT
     zero = 0
 
     @staticmethod
@@ -124,6 +127,7 @@ class GoFloat(GoType):
     >>> GoFloat.decode(bytes([254, 244, 63]))
     (1.25, b'')
     """
+    typeid = FLOAT
     zero = 0.0
 
     @staticmethod
@@ -144,6 +148,7 @@ class GoByteSlice(GoType):
     >>> GoByteSlice.decode(bytes([5, 104, 101, 108, 108, 111]))
     (bytearray(b'hello'), b'')
     """
+    typeid = BYTE_SLICE
 
     @classproperty
     def zero(cls):
@@ -166,6 +171,7 @@ class GoString(GoType):
     >>> GoString.decode(bytes([5, 104, 101, 108, 108, 111]))
     (b'hello', b'')
     """
+    typeid = STRING
     zero = b''
 
     @staticmethod
@@ -186,6 +192,7 @@ class GoComplex(GoType):
     >>> GoComplex.decode(bytes([0, 254, 244, 63]))
     (1.25j, b'')
     """
+    typeid = COMPLEX
     zero = 0 + 0j
 
     @staticmethod
@@ -206,20 +213,21 @@ class GoStruct(GoType):
         values = [self._loader.types[t].zero for (n, t) in self._fields]
         return self._class._make(values)
 
-    def __init__(self, name, loader, fields):
+    def __init__(self, typeid, name, loader, fields):
         """A Go struct with a certain set of fields.
 
         The zero value of a GoStruct is based on the zero values of
         each field:
 
         >>> from pygob import Loader
-        >>> person = GoStruct('Person', Loader(), [
+        >>> person = GoStruct(142, 'Person', Loader(), [
         ...     ('Name', STRING),
         ...     ('Age', INT),
         ... ])
         >>> person.zero
         Person(Name=b'', Age=0)
         """
+        self.typeid = typeid
         self._name = name
         self._loader = loader
         self._fields = fields
@@ -242,7 +250,7 @@ class GoStruct(GoType):
     def __repr__(self):
         """GoStruct representation.
 
-        >>> GoStruct('Person', None, [('Name', STRING), ('Age', INT)])
+        >>> GoStruct(142, 'Person', None, [('Name', STRING), ('Age', INT)])
         <GoStruct Person Name=6, Age=2>
         """
         fields = ['%s=%s' % f for f in self._fields]
@@ -262,27 +270,31 @@ class GoWireType(GoStruct):
         wire_type, buf = super().decode(buf)
 
         if wire_type.ArrayT != self._loader.types[ARRAY_TYPE].zero:
-            typeid = wire_type.ArrayT.Elem
+            typeid = wire_type.ArrayT.CommonType.Id
+            elem = wire_type.ArrayT.Elem
             length = wire_type.ArrayT.Len
-            return GoArray(self._loader, typeid, length), buf
+            return GoArray(typeid, self._loader, elem, length), buf
 
         if wire_type.SliceT != self._loader.types[SLICE_TYPE].zero:
-            typeid = wire_type.SliceT.Elem
-            return GoSlice(self._loader, typeid), buf
+            typeid = wire_type.SliceT.CommonType.Id
+            elem = wire_type.SliceT.Elem
+            return GoSlice(typeid, self._loader, elem), buf
 
         if wire_type.StructT != self._loader.types[STRUCT_TYPE].zero:
+            typeid = wire_type.StructT.CommonType.Id
             # Named tuples must be constructed using strings, not
             # bytes, so we need to decode the names here. Go source
             # files are defined to be UTF-8 encoded.
             name = wire_type.StructT.CommonType.Name.decode('utf-8')
             fields = [(f.Name.decode('utf-8'), f.Id)
                       for f in wire_type.StructT.Field]
-            return GoStruct(name, self._loader, fields), buf
+            return GoStruct(typeid, name, self._loader, fields), buf
 
         if wire_type.MapT != self._loader.types[MAP_TYPE].zero:
+            typeid = wire_type.MapT.CommonType.Id
             key_typeid = wire_type.MapT.Key
             elem_typeid = wire_type.MapT.Elem
-            return GoMap(self._loader, key_typeid, elem_typeid), buf
+            return GoMap(typeid, self._loader, key_typeid, elem_typeid), buf
 
         raise NotImplementedError("cannot handle %s" % wire_type)
 
@@ -295,18 +307,19 @@ class GoArray(GoType):
 
     @property
     def zero(self):
-        return (self._loader.types[self._typeid].zero, ) * self._length
+        return (self._loader.types[self._elem].zero, ) * self._length
 
-    def __init__(self, loader, typeid, length):
+    def __init__(self, typeid, loader, elem, length):
         """A Go array of a certain type and length.
 
         >>> from pygob import Loader
-        >>> int3 = GoArray(Loader(), INT, 3)
+        >>> int3 = GoArray(142, Loader(), INT, 3)
         >>> int3.zero
         (0, 0, 0)
         """
+        self.typeid = typeid
         self._loader = loader
-        self._typeid = typeid
+        self._elem = elem
         self._length = length
 
     def decode(self, buf):
@@ -321,7 +334,7 @@ class GoArray(GoType):
 
         result = []
         for i in range(count):
-            value, buf = self._loader.decode_value(self._typeid, buf)
+            value, buf = self._loader.decode_value(self._elem, buf)
             result.append(value)
         return tuple(result), buf
 
@@ -336,16 +349,17 @@ class GoSlice(GoType):
     def zero(cls):
         return []
 
-    def __init__(self, loader, typeid):
+    def __init__(self, typeid, loader, elem):
         """A Go slice of a certain type.
 
         >>> from pygob import Loader
-        >>> int_slice = GoSlice(Loader(), INT)
+        >>> int_slice = GoSlice(142, Loader(), INT)
         >>> int_slice.zero
         []
         """
+        self.typeid = typeid
         self._loader = loader
-        self._typeid = typeid
+        self._elem = elem
 
     def decode(self, buf):
         """Decode data from buf and return a list.
@@ -357,7 +371,7 @@ class GoSlice(GoType):
 
         result = []
         for i in range(count):
-            value, buf = self._loader.decode_value(self._typeid, buf)
+            value, buf = self._loader.decode_value(self._elem, buf)
             result.append(value)
         return result, buf
 
@@ -372,14 +386,15 @@ class GoMap(GoType):
     def zero(cls):
         return {}
 
-    def __init__(self, loader, key_typeid, elem_typeid):
+    def __init__(self, typeid, loader, key_typeid, elem_typeid):
         """A Go map with a certain key and element type.
 
         >>> from pygob import Loader
-        >>> int_string_map = GoMap(Loader(), INT, STRING)
+        >>> int_string_map = GoMap(142, Loader(), INT, STRING)
         >>> int_string_map.zero
         {}
         """
+        self.typeid = typeid
         self._loader = loader
         self._key_typeid = key_typeid
         self._elem_typeid = elem_typeid
