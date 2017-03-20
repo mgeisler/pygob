@@ -47,6 +47,16 @@ class GoType:
 
 
 class GoBool(GoType):
+    """An Go Boolean.
+
+    Go Booleans are mapped to Python Booleans. This class is meant to
+    be used statically:
+
+    >>> GoBool.decode(bytes([0]))
+    (False, b'')
+    >>> GoBool.decode(bytes([1]))
+    (True, b'')
+    """
     zero = False
 
     @staticmethod
@@ -56,6 +66,16 @@ class GoBool(GoType):
 
 
 class GoUint(GoType):
+    """An unsigned Go integer.
+
+    Go unsigned integers are mapped to Python integers. This class is
+    meant to be used statically:
+
+    >>> GoUint.decode(bytes([56]))
+    (56, b'')
+    >>> GoUint.decode(bytes([254, 1, 0]))
+    (256, b'')
+    """
     zero = 0
 
     @staticmethod
@@ -73,6 +93,16 @@ class GoUint(GoType):
 
 
 class GoInt(GoType):
+    """A signed Go integer.
+
+    Go signed integers are mapped to Python integers. This class is
+    meant to be used statically:
+
+    >>> GoInt.decode(bytes([5]))
+    (-3, b'')
+    >>> GoInt.decode(bytes([6]))
+    (3, b'')
+    """
     zero = 0
 
     @staticmethod
@@ -84,6 +114,16 @@ class GoInt(GoType):
 
 
 class GoFloat(GoType):
+    """A Go 64-bit float.
+
+    Go floats are mapped to Python floats. This class is meant to be
+    used statically:
+
+    >>> GoFloat.decode(bytes([0]))
+    (0.0, b'')
+    >>> GoFloat.decode(bytes([254, 244, 63]))
+    (1.25, b'')
+    """
     zero = 0.0
 
     @staticmethod
@@ -95,6 +135,16 @@ class GoFloat(GoType):
 
 
 class GoByteSlice(GoType):
+    """A Go byte slice.
+
+    Go byte slices are mapped to Python bytearrays.
+
+    This class is meant to be used statically:
+
+    >>> GoByteSlice.decode(bytes([5, 104, 101, 108, 108, 111]))
+    (bytearray(b'hello'), b'')
+    """
+
     @classproperty
     def zero(cls):
         return bytearray()
@@ -106,6 +156,16 @@ class GoByteSlice(GoType):
 
 
 class GoString(GoType):
+    """A Go string.
+
+    Go strings are mapped to Python bytes since Go strings do not
+    guarantee any particular encoding.
+
+    This This class is meant to be used statically:
+
+    >>> GoString.decode(bytes([5, 104, 101, 108, 108, 111]))
+    (b'hello', b'')
+    """
     zero = b''
 
     @staticmethod
@@ -118,6 +178,14 @@ class GoString(GoType):
 
 
 class GoComplex(GoType):
+    """A Go complex number.
+
+    Go complex numbers are mapped to Python complex numbers. This
+    class is meant to be used statically:
+
+    >>> GoComplex.decode(bytes([0, 254, 244, 63]))
+    (1.25j, b'')
+    """
     zero = 0 + 0j
 
     @staticmethod
@@ -128,6 +196,11 @@ class GoComplex(GoType):
 
 
 class GoStruct(GoType):
+    """A Go struct.
+
+    Go structs are mapped to Python named tuples.
+    """
+
     @property
     def zero(self):
         values = [self._loader.types[t].zero for (n, t) in self._fields]
@@ -177,6 +250,13 @@ class GoStruct(GoType):
 
 
 class GoWireType(GoStruct):
+    """A Go wire type.
+
+    This type is used in the gob stream to describe custom types.
+    Decoding a WIRE_TYPE value yields another GoType subclass which
+    can be used later to decode actual values of the custom type.
+    """
+
     def decode(self, buf):
         """Decode data from buf and return a GoType."""
         wire_type, buf = super().decode(buf)
@@ -208,6 +288,11 @@ class GoWireType(GoStruct):
 
 
 class GoArray(GoType):
+    """A Go array.
+
+    Go arrays are mapped to Python tuples.
+    """
+
     @property
     def zero(self):
         return (self._loader.types[self._typeid].zero, ) * self._length
@@ -242,6 +327,11 @@ class GoArray(GoType):
 
 
 class GoSlice(GoType):
+    """A Go slice.
+
+    Go slices are mapped to Python lists.
+    """
+
     @property
     def zero(cls):
         return []
@@ -273,6 +363,11 @@ class GoSlice(GoType):
 
 
 class GoMap(GoType):
+    """A Go map.
+
+    Go maps are mapped to Python dictionaries.
+    """
+
     @property
     def zero(cls):
         return {}
