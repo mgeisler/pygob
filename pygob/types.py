@@ -72,8 +72,12 @@ class GoUint(GoType):
     Go unsigned integers are mapped to Python integers. This class is
     meant to be used statically:
 
+    >>> list(GoUint.encode(56))
+    [56]
     >>> GoUint.decode(bytes([56]))
     (56, b'')
+    >>> list(GoUint.encode(256))
+    [254, 1, 0]
     >>> GoUint.decode(bytes([254, 1, 0]))
     (256, b'')
     """
@@ -93,6 +97,25 @@ class GoUint(GoType):
         n += buf[length]
         return n, buf[length + 1:]
 
+    @staticmethod
+    def encode(n):
+        if n < 0:
+            raise ValueError('negative number for GoUint.encode: %s' % n)
+        if n > 2**64 - 1:
+            raise OverflowError(
+                'GoUint.encode can only handle 64-bit integers: %s' % n)
+        if n < 128:
+            return bytes([n])
+        else:
+            length = 0
+            encoded = bytearray(9)
+            while n:
+                encoded[length] = n & 0xFF
+                n = n >> 8
+                length += 1
+            encoded[length] = 256 - length
+            return bytes(reversed(encoded[:length + 1]))
+
 
 class GoInt(GoType):
     """A signed Go integer.
@@ -100,8 +123,12 @@ class GoInt(GoType):
     Go signed integers are mapped to Python integers. This class is
     meant to be used statically:
 
+    >>> list(GoInt.encode(-3))
+    [5]
     >>> GoInt.decode(bytes([5]))
     (-3, b'')
+    >>> list(GoInt.encode(3))
+    [6]
     >>> GoInt.decode(bytes([6]))
     (3, b'')
     """
@@ -114,6 +141,14 @@ class GoInt(GoType):
         if uint & 1:
             uint = ~uint
         return uint >> 1, buf
+
+    @staticmethod
+    def encode(n):
+        if n < 0:
+            uint = (~n << 1) | 1
+        else:
+            uint = n << 1
+        return GoUint.encode(uint)
 
 
 class GoFloat(GoType):
