@@ -48,8 +48,8 @@ def test_bool(data, expected):
     ([5, 8, 0, 254, 240, 63], 1),
     ([4, 8, 0, 255, 192], -2),
     ([11, 8, 0, 248, 122, 0, 139, 252, 250, 33, 9, 64], 3.141592),
-    ([5, 8, 0, 254, 240, 255], -math.inf),
-    ([5, 8, 0, 254, 240, 127], +math.inf),
+    ([5, 8, 0, 254, 240, 255], float('-inf')),
+    ([5, 8, 0, 254, 240, 127], float('+inf')),
 ])
 def test_float(data, expected):
     assert pygob.load(bytes(data)) == expected
