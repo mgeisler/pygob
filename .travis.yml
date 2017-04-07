@@ -7,6 +7,6 @@ python:
 
 cache: pip
 
-install: "pip install --upgrade -r test-requirements.txt"
+install: pip install tox-travis
 
-script: pytest
+script: tox
