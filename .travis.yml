@@ -5,6 +5,8 @@ python:
   - "3.5"
   - "3.6"
 
+cache: pip
+
 install: "pip install --upgrade -r test-requirements.txt"
 
 script: pytest
