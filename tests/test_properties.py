@@ -1,6 +1,6 @@
 import math
 
-from hypothesis import given
+from hypothesis import given, event
 from hypothesis import strategies as st
 
 from pygob.types import GoBool, GoUint, GoInt, GoFloat
@@ -14,8 +14,9 @@ def test_bool_true():
     assert GoBool.decode(GoBool.encode(True)) == (True, b'')
 
 
-@given(st.integers(0, 2**64 - 1))
+@given(st.integers(min_value=0))
 def test_uint(n):
+    event('%d-bit integer' % n.bit_length())
     assert GoUint.decode(GoUint.encode(n)) == (n, b'')
 
 

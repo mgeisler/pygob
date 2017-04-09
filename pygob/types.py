@@ -121,9 +121,6 @@ class GoUint(GoType):
         """
         if n < 0:
             raise ValueError('negative number for GoUint.encode: %s' % n)
-        if n > 2**64 - 1:
-            raise OverflowError(
-                'GoUint.encode can only handle 64-bit integers: %s' % n)
         if n < 128:
             return bytes([n])
         else:
