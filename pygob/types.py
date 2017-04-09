@@ -251,6 +251,15 @@ class GoByteSlice(GoType):
         count, buf = GoUint.decode(buf)
         return bytearray(buf[:count]), buf[count:]
 
+    @staticmethod
+    def encode(buf):
+        """Encode a Python bytes value as a Go byte slice:
+
+        >>> list(GoByteSlice.encode(b'hello'))
+        [5, 104, 101, 108, 108, 111]
+        """
+        return GoUint.encode(len(buf)) + buf
+
 
 class GoString(GoType):
     """A Go string.
@@ -275,6 +284,17 @@ class GoString(GoType):
         # Add support for trying to decode the bytes using, say,
         # UTF-8, so we can return a real Python string.
         return buf[:count], buf[count:]
+
+    @staticmethod
+    def encode(s):
+        """Encode a Python string as a Go string. The string will be UTF-8
+        encoded before being turned into bytes since most Go programs
+        will expect that encoding:
+
+        >>> GoString.encode('alpha: α')
+        b'\\talpha: \\xce\\xb1'
+        """
+        return GoByteSlice.encode(s.encode('utf-8'))
 
 
 class GoComplex(GoType):

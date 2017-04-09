@@ -37,3 +37,21 @@ def test_int(value, encoded):
 ])
 def test_float(value, encoded):
     assert pygob.dump(value) == bytes(encoded)
+
+
+@pytest.mark.parametrize(('value', 'encoded'), [
+    (b'', b'\x03\x0a\x00\x00'),
+    (b'\x00', b'\x04\x0a\x00\x01\x00'),
+    (b'abc', b'\x06\x0a\x00\x03abc'),
+])
+def test_bytes(value, encoded):
+    assert pygob.dump(value) == encoded
+
+
+@pytest.mark.parametrize(('value', 'encoded'), [
+    ('', b'\x03\x0c\x00\x00'),
+    ('hello', b'\x08\x0c\x00\x05hello'),
+    ('alpha: α', b'\x0c\x0c\x00\x09alpha: \xce\xb1'),
+])
+def test_str(value, encoded):
+    assert pygob.dump(value) == encoded

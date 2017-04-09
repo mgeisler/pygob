@@ -3,7 +3,7 @@ import math
 from hypothesis import given, event
 from hypothesis import strategies as st
 
-from pygob.types import GoBool, GoUint, GoInt, GoFloat
+from pygob.types import GoBool, GoUint, GoInt, GoFloat, GoByteSlice, GoString
 
 
 def test_bool_false():
@@ -33,3 +33,14 @@ def test_float(f):
         assert math.isnan(result)
     else:
         assert result == f
+
+
+@given(st.binary())
+def test_byte_slice(buf):
+    assert GoByteSlice.decode(GoByteSlice.encode(buf)) == (buf, b'')
+
+
+@given(st.text())
+def test_str(text):
+    assert GoString.decode(GoString.encode(text)) == (text.encode('utf-8'),
+                                                      b'')
