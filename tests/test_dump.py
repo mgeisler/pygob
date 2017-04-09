@@ -4,6 +4,14 @@ import pygob
 
 
 @pytest.mark.parametrize(('value', 'encoded'), [
+    (False, [3, 2, 0, 0]),
+    (True, [3, 2, 0, 1]),
+])
+def test_bool(value, encoded):
+    assert pygob.dump(value) == bytes(encoded)
+
+
+@pytest.mark.parametrize(('value', 'encoded'), [
     (-2, [3, 4, 0, 3]),
     (-1, [3, 4, 0, 1]),
     (0, [3, 4, 0, 0]),

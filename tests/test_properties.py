@@ -1,7 +1,15 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from pygob.types import GoUint, GoInt
+from pygob.types import GoBool, GoUint, GoInt
+
+
+def test_bool_false():
+    assert GoBool.decode(GoBool.encode(False)) == (False, b'')
+
+
+def test_bool_true():
+    assert GoBool.decode(GoBool.encode(True)) == (True, b'')
 
 
 @given(st.integers(0, 2**64 - 1))

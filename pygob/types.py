@@ -68,6 +68,17 @@ class GoBool(GoType):
         n, buf = GoUint.decode(buf)
         return n == 1, buf
 
+    @staticmethod
+    def encode(b):
+        """Encode a Python Boolean as a Go bool:
+
+        >>> list(GoBool.encode(False))
+        [0]
+        >>> list(GoBool.encode(True))
+        [1]
+        """
+        return GoUint.encode(int(b))
+
 
 class GoUint(GoType):
     """An unsigned Go integer.
