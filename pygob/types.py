@@ -197,8 +197,8 @@ class GoFloat(GoType):
         (1.25, b'')
         """
         n, buf = GoUint.decode(buf)
-        rev = bytes(reversed(struct.pack('L', n)))
-        (f, ) = struct.unpack('d', rev)
+        rev = struct.pack('>Q', n)
+        (f, ) = struct.unpack('<d', rev)
         return f, buf
 
     @staticmethod
@@ -227,8 +227,8 @@ class GoFloat(GoType):
         They only differ in the so-called "payload" of the value,
         which is ignored in most applications.
         """
-        rev = bytes(reversed(struct.pack('d', f)))
-        (n, ) = struct.unpack('L', rev)
+        rev = struct.pack('<d', f)
+        (n, ) = struct.unpack('>Q', rev)
         return GoUint.encode(n)
 
 
