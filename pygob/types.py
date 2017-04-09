@@ -201,6 +201,36 @@ class GoFloat(GoType):
         (f, ) = struct.unpack('d', rev)
         return f, buf
 
+    @staticmethod
+    def encode(f):
+        """Encode a Python floating point number as a Go float64:
+
+        >>> list(GoFloat.encode(0.0))
+        [0]
+        >>> list(GoFloat.encode(1.25))
+        [254, 244, 63]
+
+        Interestingly, Python's representation of NaN (not a number)
+        is different from Go's. Python uses:
+
+        >>> list(struct.pack('d', float('nan')))
+        [0, 0, 0, 0, 0, 0, 248, 127]
+
+        whereas Go uses `[1, 0, 0, 0, 0, 0, 248, 127]`. However, both
+        are valid ways of representing a IEEE 754 NaN value:
+
+        >>> GoFloat.decode(bytes([248, 1, 0, 0, 0, 0, 0, 248, 127]))
+        (nan, b'')
+        >>> GoFloat.decode(bytes([254, 248, 127]))
+        (nan, b'')
+
+        They only differ in the so-called "payload" of the value,
+        which is ignored in most applications.
+        """
+        rev = bytes(reversed(struct.pack('d', f)))
+        (n, ) = struct.unpack('L', rev)
+        return GoUint.encode(n)
+
 
 class GoByteSlice(GoType):
     """A Go byte slice.

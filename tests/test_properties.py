@@ -1,7 +1,9 @@
+import math
+
 from hypothesis import given
 from hypothesis import strategies as st
 
-from pygob.types import GoBool, GoUint, GoInt
+from pygob.types import GoBool, GoUint, GoInt, GoFloat
 
 
 def test_bool_false():
@@ -20,3 +22,13 @@ def test_uint(n):
 @given(st.integers(-2**63, 2**63 - 1))
 def test_int(n):
     assert GoInt.decode(GoInt.encode(n)) == (n, b'')
+
+
+@given(st.floats())
+def test_float(f):
+    result, buf = GoFloat.decode(GoFloat.encode(f))
+    assert buf == b''
+    if math.isnan(f):
+        assert math.isnan(result)
+    else:
+        assert result == f

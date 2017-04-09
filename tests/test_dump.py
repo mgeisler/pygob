@@ -24,3 +24,16 @@ def test_bool(value, encoded):
 ])
 def test_int(value, encoded):
     assert pygob.dump(value) == bytes(encoded)
+
+
+@pytest.mark.parametrize(('value', 'encoded'), [
+    (0.0, [3, 8, 0, 0]),
+    (1.0, [5, 8, 0, 254, 240, 63]),
+    (-2.0, [4, 8, 0, 255, 192]),
+    (3.141592, [11, 8, 0, 248, 122, 0, 139, 252, 250, 33, 9, 64]),
+    (float('-inf'), [5, 8, 0, 254, 240, 255]),
+    (float('+inf'), [5, 8, 0, 254, 240, 127]),
+    (float('nan'), [5, 8, 0, 254, 248, 127]),
+])
+def test_float(value, encoded):
+    assert pygob.dump(value) == bytes(encoded)
