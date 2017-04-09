@@ -127,14 +127,12 @@ class GoUint(GoType):
         if n < 128:
             return bytes([n])
         else:
-            length = 0
-            encoded = bytearray(9)
+            encoded = []
             while n:
-                encoded[length] = n & 0xFF
+                encoded.append(n & 0xFF)
                 n = n >> 8
-                length += 1
-            encoded[length] = 256 - length
-            return bytes(reversed(encoded[:length + 1]))
+            encoded.append(256 - len(encoded))
+            return bytes(reversed(encoded))
 
 
 class GoInt(GoType):
