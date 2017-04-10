@@ -50,42 +50,55 @@ class GoBool(GoType):
     """An Go Boolean.
 
     Go Booleans are mapped to Python Booleans. This class is meant to
-    be used statically:
-
-    >>> GoBool.decode(bytes([0]))
-    (False, b'')
-    >>> GoBool.decode(bytes([1]))
-    (True, b'')
+    be used statically.
     """
     typeid = BOOL
     zero = False
 
     @staticmethod
     def decode(buf):
+        """Decode a Boolean from buf. Returns the Boolean and the remainder of
+        the buffer:
+
+        >>> GoBool.decode(bytes([0]))
+        (False, b'')
+        >>> GoBool.decode(bytes([1]))
+        (True, b'')
+        """
         n, buf = GoUint.decode(buf)
         return n == 1, buf
+
+    @staticmethod
+    def encode(b):
+        """Encode a Python Boolean as a Go bool:
+
+        >>> list(GoBool.encode(False))
+        [0]
+        >>> list(GoBool.encode(True))
+        [1]
+        """
+        return GoUint.encode(int(b))
 
 
 class GoUint(GoType):
     """An unsigned Go integer.
 
     Go unsigned integers are mapped to Python integers. This class is
-    meant to be used statically:
-
-    >>> list(GoUint.encode(56))
-    [56]
-    >>> GoUint.decode(bytes([56]))
-    (56, b'')
-    >>> list(GoUint.encode(256))
-    [254, 1, 0]
-    >>> GoUint.decode(bytes([254, 1, 0]))
-    (256, b'')
+    meant to be used statically.
     """
     typeid = UINT
     zero = 0
 
     @staticmethod
     def decode(buf):
+        """Decode an unsigned integer from buf. Returns the integer and the
+        remainder of the buffer:
+
+        >>> GoUint.decode(bytes([56]))
+        (56, b'')
+        >>> GoUint.decode(bytes([254, 1, 0]))
+        (256, b'')
+        """
         if buf[0] < 128:  # small uint in a single byte
             return buf[0], buf[1:]
 
@@ -99,44 +112,45 @@ class GoUint(GoType):
 
     @staticmethod
     def encode(n):
+        """Encode a Python integer as an unsigned Go int:
+
+        >>> list(GoUint.encode(56))
+        [56]
+        >>> list(GoUint.encode(256))
+        [254, 1, 0]
+        """
         if n < 0:
             raise ValueError('negative number for GoUint.encode: %s' % n)
-        if n > 2**64 - 1:
-            raise OverflowError(
-                'GoUint.encode can only handle 64-bit integers: %s' % n)
         if n < 128:
             return bytes([n])
         else:
-            length = 0
-            encoded = bytearray(9)
+            encoded = []
             while n:
-                encoded[length] = n & 0xFF
+                encoded.append(n & 0xFF)
                 n = n >> 8
-                length += 1
-            encoded[length] = 256 - length
-            return bytes(reversed(encoded[:length + 1]))
+            encoded.append(256 - len(encoded))
+            return bytes(reversed(encoded))
 
 
 class GoInt(GoType):
     """A signed Go integer.
 
     Go signed integers are mapped to Python integers. This class is
-    meant to be used statically:
-
-    >>> list(GoInt.encode(-3))
-    [5]
-    >>> GoInt.decode(bytes([5]))
-    (-3, b'')
-    >>> list(GoInt.encode(3))
-    [6]
-    >>> GoInt.decode(bytes([6]))
-    (3, b'')
+    meant to be used statically.
     """
     typeid = INT
     zero = 0
 
     @staticmethod
     def decode(buf):
+        """Decode a signed integer from buf. Returns the integer and the
+        remainder of the buffer:
+
+        >>> GoInt.decode(bytes([5]))
+        (-3, b'')
+        >>> GoInt.decode(bytes([6]))
+        (3, b'')
+        """
         uint, buf = GoUint.decode(buf)
         if uint & 1:
             uint = ~uint
@@ -144,6 +158,13 @@ class GoInt(GoType):
 
     @staticmethod
     def encode(n):
+        """Encode a Python integer as a signed Go int:
+
+        >>> list(GoInt.encode(-3))
+        [5]
+        >>> list(GoInt.encode(3))
+        [6]
+        """
         if n < 0:
             uint = (~n << 1) | 1
         else:
@@ -155,22 +176,55 @@ class GoFloat(GoType):
     """A Go 64-bit float.
 
     Go floats are mapped to Python floats. This class is meant to be
-    used statically:
-
-    >>> GoFloat.decode(bytes([0]))
-    (0.0, b'')
-    >>> GoFloat.decode(bytes([254, 244, 63]))
-    (1.25, b'')
+    used statically.
     """
     typeid = FLOAT
     zero = 0.0
 
     @staticmethod
     def decode(buf):
+        """Decode a 64-bit floating point number from buf. Returns the float
+        and the remainder of the buffer:
+
+        >>> GoFloat.decode(bytes([0]))
+        (0.0, b'')
+        >>> GoFloat.decode(bytes([254, 244, 63]))
+        (1.25, b'')
+        """
         n, buf = GoUint.decode(buf)
-        rev = bytes(reversed(struct.pack('L', n)))
-        (f, ) = struct.unpack('d', rev)
+        rev = struct.pack('>Q', n)
+        (f, ) = struct.unpack('<d', rev)
         return f, buf
+
+    @staticmethod
+    def encode(f):
+        """Encode a Python floating point number as a Go float64:
+
+        >>> list(GoFloat.encode(0.0))
+        [0]
+        >>> list(GoFloat.encode(1.25))
+        [254, 244, 63]
+
+        Interestingly, Python's representation of NaN (not a number)
+        is different from Go's. Python uses:
+
+        >>> list(struct.pack('d', float('nan')))
+        [0, 0, 0, 0, 0, 0, 248, 127]
+
+        whereas Go uses `[1, 0, 0, 0, 0, 0, 248, 127]`. However, both
+        are valid ways of representing a IEEE 754 NaN value:
+
+        >>> GoFloat.decode(bytes([248, 1, 0, 0, 0, 0, 0, 248, 127]))
+        (nan, b'')
+        >>> GoFloat.decode(bytes([254, 248, 127]))
+        (nan, b'')
+
+        They only differ in the so-called "payload" of the value,
+        which is ignored in most applications.
+        """
+        rev = struct.pack('<d', f)
+        (n, ) = struct.unpack('>Q', rev)
+        return GoUint.encode(n)
 
 
 class GoByteSlice(GoType):
@@ -178,10 +232,7 @@ class GoByteSlice(GoType):
 
     Go byte slices are mapped to Python bytearrays.
 
-    This class is meant to be used statically:
-
-    >>> GoByteSlice.decode(bytes([5, 104, 101, 108, 108, 111]))
-    (bytearray(b'hello'), b'')
+    This class is meant to be used statically.
     """
     typeid = BYTE_SLICE
 
@@ -191,50 +242,90 @@ class GoByteSlice(GoType):
 
     @staticmethod
     def decode(buf):
+        """Decode a byte slice from buf. Returns the slice and the remainder
+        of the buffer:
+
+        >>> GoByteSlice.decode(bytes([5, 104, 101, 108, 108, 111]))
+        (bytearray(b'hello'), b'')
+        """
         count, buf = GoUint.decode(buf)
         return bytearray(buf[:count]), buf[count:]
+
+    @staticmethod
+    def encode(buf):
+        """Encode a Python bytes value as a Go byte slice:
+
+        >>> list(GoByteSlice.encode(b'hello'))
+        [5, 104, 101, 108, 108, 111]
+        """
+        return GoUint.encode(len(buf)) + buf
 
 
 class GoString(GoType):
     """A Go string.
 
     Go strings are mapped to Python bytes since Go strings do not
-    guarantee any particular encoding.
-
-    This This class is meant to be used statically:
-
-    >>> GoString.decode(bytes([5, 104, 101, 108, 108, 111]))
-    (b'hello', b'')
+    guarantee any particular encoding. This class is meant to be used
+    statically.
     """
     typeid = STRING
     zero = b''
 
     @staticmethod
     def decode(buf):
+        """Decode a string from buf. Since Go strings do not guarantee any
+        particular encoding, the data is returned as bytes:
+
+        >>> GoString.decode(bytes([5, 104, 101, 108, 108, 111]))
+        (b'hello', b'')
+        """
         count, buf = GoUint.decode(buf)
         # TODO: Go strings do not guarantee any particular encoding.
         # Add support for trying to decode the bytes using, say,
         # UTF-8, so we can return a real Python string.
         return buf[:count], buf[count:]
 
+    @staticmethod
+    def encode(s):
+        """Encode a Python string as a Go string. The string will be UTF-8
+        encoded before being turned into bytes since most Go programs
+        will expect that encoding:
+
+        >>> GoString.encode('alpha: α')
+        b'\\talpha: \\xce\\xb1'
+        """
+        return GoByteSlice.encode(s.encode('utf-8'))
+
 
 class GoComplex(GoType):
     """A Go complex number.
 
     Go complex numbers are mapped to Python complex numbers. This
-    class is meant to be used statically:
-
-    >>> GoComplex.decode(bytes([0, 254, 244, 63]))
-    (1.25j, b'')
+    class is meant to be used statically.
     """
     typeid = COMPLEX
     zero = 0 + 0j
 
     @staticmethod
     def decode(buf):
+        """Decode a complex number from `buf`. Returns the number and the
+        remainder of the buffer:
+
+        >>> GoComplex.decode(bytes([0, 254, 244, 63]))
+        (1.25j, b'')
+        """
         re, buf = GoFloat.decode(buf)
         im, buf = GoFloat.decode(buf)
         return complex(re, im), buf
+
+    @staticmethod
+    def encode(z):
+        """Encode a complex number:
+
+        >>> list(GoComplex.encode(1.25j))
+        [0, 254, 244, 63]
+        """
+        return GoFloat.encode(z.real) + GoFloat.encode(z.imag)
 
 
 class GoStruct(GoType):

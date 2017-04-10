@@ -1,11 +1,19 @@
 import io
 
-from .types import (GoInt, GoUint, GoStruct)
+from .types import (GoBool, GoInt, GoUint, GoFloat, GoStruct, GoByteSlice,
+                    GoString, GoComplex)
 
 
 class Dumper:
     def __init__(self):
-        self.types = {int: GoInt}
+        self.types = {
+            bool: GoBool,
+            int: GoInt,
+            float: GoFloat,
+            bytes: GoByteSlice,
+            str: GoString,
+            complex: GoComplex,
+        }
 
     def dump(self, value):
         return self._dump(value)
