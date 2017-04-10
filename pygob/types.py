@@ -318,6 +318,15 @@ class GoComplex(GoType):
         im, buf = GoFloat.decode(buf)
         return complex(re, im), buf
 
+    @staticmethod
+    def encode(z):
+        """Encode a complex number:
+
+        >>> list(GoComplex.encode(1.25j))
+        [0, 254, 244, 63]
+        """
+        return GoFloat.encode(z.real) + GoFloat.encode(z.imag)
+
 
 class GoStruct(GoType):
     """A Go struct.

@@ -1,7 +1,7 @@
 import io
 
 from .types import (GoBool, GoInt, GoUint, GoFloat, GoStruct, GoByteSlice,
-                    GoString)
+                    GoString, GoComplex)
 
 
 class Dumper:
@@ -12,6 +12,7 @@ class Dumper:
             float: GoFloat,
             bytes: GoByteSlice,
             str: GoString,
+            complex: GoComplex,
         }
 
     def dump(self, value):

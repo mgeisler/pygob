@@ -55,3 +55,16 @@ def test_bytes(value, encoded):
 ])
 def test_str(value, encoded):
     assert pygob.dump(value) == encoded
+
+
+@pytest.mark.parametrize(('value', 'encoded'), [
+    (0.0 + 0.0j, [4, 14, 0, 0, 0]),
+    (0.0 + 1.0j, [6, 14, 0, 0, 254, 240, 63]),
+    (3.0 + 4.0j, [8, 14, 0, 254, 8, 64, 254, 16, 64]),
+    (-2.71828 + 3.14159j, [
+        20, 14, 0, 248, 144, 247, 170, 149, 9, 191, 5, 192, 248, 110, 134, 27,
+        240, 249, 33, 9, 64
+    ]),
+])
+def test_complex(value, encoded):
+    assert pygob.dump(value) == bytes(encoded)
